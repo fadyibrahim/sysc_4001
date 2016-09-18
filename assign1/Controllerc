@@ -1,0 +1,176 @@
+//Group Members: Tejas Patil  Student ID: 100823713, Fady Ibrahim   Student ID: 100876906
+
+
+#include "Monitor.h"
+#include <ctype.h>
+#include <signal.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/msg.h>
+
+// Global variables for the message Queue Id, process ID, fifo ID
+    struct data_to_pass_st my_data;
+    int client_fifo_fd;
+    int msgQid;
+    int prev_fifo_fd;
+    pid_t pid;
+    int server_fifo_fd;
+
+// the child controller processes are defined in this function
+void start_ChildProcess()
+{
+  // local variables for the child function
+  struct my_msg_st some_data;
+  long int msg_to_receive = 0;
+
+  int a = 0, b=0;
+
+  // infinite while loop to provide the feature of control the heartbeat periodically
+  while(1 == 1){
+
+	// buffer  to store the size of the bytes received
+        int size = sizeof(struct  my_msg_st) - sizeof(long int);
+
+	// Receives the message through the message queue
+	a = msgrcv(msgQid, (void *) &some_data, size, msg_to_receive, 0);
+
+	if (a == -1) {
+		    fprintf(stderr, "msgrcv failed with error: %d\n", errno);
+		    exit(EXIT_FAILURE);
+        }	
+
+   	printf("Heartbeat rate: %d\n", some_data.some_text);
+   	printf("Patient name: %s\n", some_data.client_name);
+   	printf("Process ID: %d\n\n", some_data.client_pid);
+    
+	// Acknowledgement message to sender for each message received
+	strcpy(some_data.ACK, "Acknowledge");
+
+	 // Sends the message through the message queue
+	b = msgsnd(msgQid, (void *)&some_data, size, 0);
+
+	// Error checking to ensure the send is successful
+        if (b == -1) {
+		    fprintf(stderr, "msgsnd failed\n");
+		    exit(EXIT_FAILURE);
+         }
+
+  }
+
+}
+/*Interrup method that will be called when the terminate_processes method sends a kill message to the child*/
+void kill_childprocess(int sig)
+{
+// clean up resources by removing the message queue
+    if (msgctl(msgQid, IPC_RMID, 0) == -1) {
+        fprintf(stderr, "msgctl(IPC_RMID) failed\n");
+        exit(EXIT_FAILURE);
+    }
+  exit(0);
+}
+/*Interrupt method that will be called when the user presses ^C on the terminal. The interrupt method will terminate all processs and the controller's child process.*/
+void terminate_processes(int sig)
+{
+	  char client_fifo[256];
+	  char operation_terminate[]="stop";
+	  printf("Terminating Processes\n");
+//empty the string array containing start
+	  my_data.connection_status[0]=(char)0;
+//copy the stop message into the empty string array
+	  strcpy(my_data.connection_status,operation_terminate);
+	  sprintf(client_fifo, CLIENT_FIFO_NAME, my_data.client_pid);
+//write a stop message to the two monitor processes that  to terminate them
+	  write(client_fifo_fd, &my_data, sizeof(my_data));
+	  write(prev_fifo_fd, &my_data, sizeof(my_data));
+/*cleaning operation to close all connections to the fifo and delete the server fifo*/
+	  close(client_fifo_fd);
+	  close(prev_fifo_fd);
+	  close(server_fifo_fd);
+	  unlink(SERVER_FIFO_NAME);
+//the signal sent to the child process to terminate the child
+	  kill(pid,SIGTERM);
+//exit the interrupt
+	  exit(EXIT_SUCCESS);
+}
+
+int main(int argc, char *argv[] )
+{
+  //local variables that control the signal and 
+  struct sigaction terminate;
+  struct sigaction terminatechild;
+  int read_res;
+  char client_fifo[256];
+  char *tmp_char_ptr;
+  char operation_start[]= "start";
+  prev_fifo_fd=0;
+//initalize the sigaction interface to listen to the SIGINT raised from the terminal
+  terminate.sa_handler=terminate_processes;
+  sigemptyset(&terminate.sa_mask);
+  terminate.sa_flags=0;
+  sigaction(SIGINT,&terminate,0);
+//create a child process that will communicate with the child process of the monitor child process
+  pid = fork();
+  switch(pid) {
+  case -1:
+    /* Failure */
+    perror("fork failed");
+    exit(1);
+  case 0:
+    /* child */
+//create a message queue that will be used to send patient information
+    msgQid = msgget(ftok("/home/LABS", 1), 0666 | IPC_CREAT);
+    if (msgQid == -1) {
+       	fprintf(stderr, "msgget failed with error: %d\n", errno);
+       	exit(EXIT_FAILURE);
+    }
+//initalize the sigaction interface to listen for SIGTERM raised from terminate process function
+    terminatechild.sa_handler=kill_childprocess;
+    sigemptyset(&terminatechild.sa_mask);
+    terminatechild.sa_flags=0;
+    sigaction(SIGTERM,&terminatechild,0);
+//ignore the signal SIGINT from the terminal
+    (void)signal(SIGINT,SIG_IGN);
+    start_ChildProcess();
+  }
+//create the fifo that will connect clients to the server
+  mkfifo(SERVER_FIFO_NAME, 0777);
+//the fifo will be read only from the server side
+  server_fifo_fd = open(SERVER_FIFO_NAME, O_RDONLY);
+  if (server_fifo_fd == -1) {
+    fprintf(stderr, "Server fifo failure\n");
+    exit(EXIT_FAILURE);
+  }
+
+  sleep(5); /* lets clients queue for demo purposes */
+
+  do {
+   // read from the server fifo(sent by the patient) and store the data in my data
+    read_res = read(server_fifo_fd, &my_data, sizeof(my_data));
+    if (read_res > 0) {
+      sprintf(client_fifo, CLIENT_FIFO_NAME, my_data.client_pid);
+      if((strcmp(my_data.connection_status,"connect")==0))
+	{
+	  printf("Connection request received.\n");
+	//reset the string to carry no characters
+	  my_data.connection_status[0]=(char)0;
+	//copy string start into the array containting connect
+	  strcpy(my_data.connection_status,operation_start);
+	  client_fifo_fd = open(client_fifo, O_WRONLY);
+	  //keep track of previous client id (Server needs to know all the clients attached)
+	if(prev_fifo_fd==0){
+	    prev_fifo_fd=client_fifo_fd;
+	  }
+	//write start back into the client fifo
+	  if (client_fifo_fd != -1) {
+	    printf("Initiating start process:\n");
+	    write(client_fifo_fd, &my_data, sizeof(my_data));
+	  }
+	}
+    }}while (read_res > 0);
+  close(server_fifo_fd);
+  unlink(SERVER_FIFO_NAME);
+  exit(EXIT_SUCCESS);
+}

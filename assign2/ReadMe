@@ -1,0 +1,89 @@
+The group members for this project are: 
+1) Tejas Patil 100823713
+2) Fady Ibrahim 100876906
+
+The program consists of two main documents:
+i) Part A
+
+Part A consists of the implementation of three variations of the PC problem. The following are the files included in document Part A:
+
+1) Alternative 1
+2) Alternative 2
+3) Alternative 3
+
+Each of the above alternatives consists of:
+1) Consumer.c
+2) Producer.c
+3) Header.h
+4) shm_com.h
+5) semun.h
+
+ii) Part B consists of the performance comparison of three variations. The following are the files included in document Part B:
+
+1) Alternative 1
+2) Alternative 2
+3) Alternative 3
+
+Each of the above alternatives consists of are the following files:
+1) Small buffer size
+2) Medium buffer size
+3) Large buffer size
+
+Within each one of the above documents 
+1) Consumer.c
+2) Producer.c
+3) Header.h
+4) shm_com.h
+5) semun.h
+
+Firstly, the steps below are for Part A. In order to successfully run the program the following steps have to be followed:
+1.) Open four xterm's
+2.) Compile the consumer by typing into the first xterm: 
+gcc Consumer.c -o c1
+3.) Run the consumer by typing into the first xterm: 
+./c1
+4.) Compile the consumer by typing into the second xterm: 
+gcc Consumer.c -o c2
+5.) Run the consumer by typing into the second xterm: 
+./c2
+6.) Compile the producer by typing into the third xterm: 
+gcc Producer.c -o p1
+7.) Run the producer by typing into the third xterm: 
+./p1
+8.) Compile the producer by typing into the fourth xterm: 
+gcc Producer.c -o p2
+7.) Run the producer by typing into the third xterm: 
+./p2
+8.) The above scenario shows the case with multiple producers and multiple consumers.
+9.) Similarly, you can do the one producer and multiple consumers or the one consumer and multiple producers scenarios.
+
+All three alternatives can be tested similarly using the steps mentioned above. 
+
+
+Secondly, the steps below are for Part B. In order to successfully run the program the following steps have to be followed:
+1.) Open four xterm's
+2.) Compile the consumer by typing into the first xterm: 
+gcc Consumer.c -o c1
+3.) Run the consumer by typing into the first xterm: 
+./c1
+4.) Compile the consumer by typing into the second xterm: 
+gcc Consumer.c -o c2
+5.) Run the consumer by typing into the second xterm: 
+./c2
+6.) Compile the producer by typing into the third xterm: 
+gcc Producer.c -o p1
+7.) Run the producer by typing into the third xterm: 
+./p1
+8.) Compile the producer by typing into the fourth xterm: 
+gcc Producer.c -o p2
+7.) Run the producer by typing into the third xterm: 
+./p2
+8.) The above scenario shows the case with multiple producers and multiple consumers.
+9.) Similarly, you can do the one producer and multiple consumers or the one consumer and multiple producers scenarios.
+
+All three alternatives can be tested similarly using the steps mentioned above. 
+
+The idea with running part B is that it will show you the execution time. But, in order to get an accurate figure run the consumer files first and then rightaway run the producer files for best results. 
+
+The exit conditions have been handled properly. The program terminates once all the positions have been completed. 
+
