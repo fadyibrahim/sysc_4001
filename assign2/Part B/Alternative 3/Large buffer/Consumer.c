@@ -6,11 +6,7 @@
 
 #include <unistd.h>
 #include <stdlib.h>
-/* After the #includes, the function prototypes and the global variable, we come to the
- main function. There the semaphore is created with a call to semget, which returns the
- semaphore ID. If the program is the first to be called (i.e. it's called with a parameter
- and argc > 1), a call is made to set_semvalue to initialize the semaphore and op_char is
- set to X. */
+
 
 #include <unistd.h>
 #include <stdlib.h>
